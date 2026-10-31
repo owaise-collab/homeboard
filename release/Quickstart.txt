@@ -1,0 +1,44 @@
+WELCOME TO HOMEBOARD
+
+1. Run the Homeboard installer, then open Homeboard from the finish screen or
+   your Start menu. Python, Docker and a command prompt are not needed.
+2. Follow the first-time setup: create your owner login, name your household,
+   choose local time and appearance, and add the people at home.
+3. Save your recovery kit somewhere private and separate from this PC. It can
+   restore owner access without relying on email or a vendor account.
+4. Use separate adult accounts on personal devices. Use a Display account for
+   a kitchen screen; that account cannot change your plans or lists.
+
+EVERYDAY USE
+
+Open Homeboard to see today and the coming week. Edit buttons change existing
+plans, tasks and shopping items. For a recurring event, choose whether your edit
+affects one occurrence or the whole series. Weekly events can select weekdays.
+
+The PC running Homeboard must remain powered on, signed in and awake for phones
+and the kitchen display to reach it. Closing the browser does not stop the local
+server. Use Start menu > Homeboard > Stop Homeboard when you want to stop it.
+
+CONNECTING ANOTHER DEVICE
+
+Devices need to be on the same home network. Sharing depends on private-network
+firewall access and a trusted HTTPS setup. A guest Wi-Fi network may block access.
+The seller's installation guide must cover the exact supported network setup.
+This candidate does not create public internet access or a remote-access tunnel.
+
+YOUR DATA
+
+Application: %LOCALAPPDATA%\Programs\Homeboard
+Data/configuration/logs: %LOCALAPPDATA%\Homeboard
+Database snapshots: %LOCALAPPDATA%\Homeboard\data\backups
+
+Updates replace the application, not your household data. Ordinary uninstall
+keeps your data and backups so reinstalling can reconnect to the same household.
+Export a household backup and copy database snapshots to another physical drive.
+
+RELEASE CANDIDATE
+
+This is an unsigned candidate for testing. It has not completed independent
+security review or the full clean-PC and TV compatibility checks required before
+public sale. The seller must provide approved license terms and support details.
+Do not disable Windows security protections to run an installer.
