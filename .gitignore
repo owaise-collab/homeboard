@@ -1,0 +1,10 @@
+data/
+.env
+__pycache__/
+tests/__pycache__/
+tests/.temporary/
+*.pyc
+.build/
+.build-tools/
+release/artifacts/
+installer/homeboard.ico
