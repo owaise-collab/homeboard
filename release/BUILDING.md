@@ -14,6 +14,8 @@ Download the **official portable NSIS 3.13 ZIP** from its [publisher project](ht
 python scripts/build_windows.py
 ```
 
+For automated builds, `python scripts/get_nsis.py` obtains that same original ZIP from the pinned Chocolatey `nsis.portable` 3.13.0 package. It verifies the registry envelope SHA-256 (`c3597a5bbb40521bad9e762b3175b8bcde4768fb8a51376471a3d8293a2e86f2`) and then independently verifies the embedded ZIP against the publisher hash above. It does not execute the package's PowerShell installation script. This avoids an unreliable direct SourceForge download response without relaxing the vendor archive check.
+
 The builder runs backend/frontend tests, bundles the launcher, server, HTML and timezone data with PyInstaller, collects available runtime license notices, then invokes portable NSIS. Outputs are in `release/artifacts`: a Setup EXE, portable ZIP, SHA-256 file and artifact manifest. Source packaging is separate.
 
 ```text
