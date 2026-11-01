@@ -40,7 +40,7 @@ class LauncherCase(unittest.TestCase):
         self.folder.cleanup()
 
     def test_windows_profile_paths_and_existing_data_survive_configuration(self):
-        with patch.dict(launcher.os.environ, {"LOCALAPPDATA": self.folder.name}):
+        with patch.object(launcher, 'IS_WINDOWS', True), patch.dict(launcher.os.environ, {"LOCALAPPDATA": self.folder.name}):
             paths = launcher.AppPaths()
         self.assertEqual(paths.root, Path(self.folder.name).resolve() / "Homeboard")
         self.assertEqual(paths.data, paths.root / "data")
@@ -58,6 +58,51 @@ class LauncherCase(unittest.TestCase):
         with self.assertRaises(launcher.LaunchError):
             launcher.read_config(self.paths)
         self.assertEqual(self.paths.config.read_text(), '{"port": 8000}')
+
+    def test_mac_and_linux_profiles_use_native_per_user_storage(self):
+        with patch.object(launcher, 'IS_WINDOWS', False), patch.object(launcher.Path, 'home', return_value=Path(self.folder.name)):
+            with patch.object(launcher.sys, 'platform', 'darwin'):
+                self.assertEqual(launcher.AppPaths().root, Path(self.folder.name).resolve() / 'Library' / 'Application Support' / 'Homeboard')
+            with patch.object(launcher.sys, 'platform', 'linux'), patch.dict(launcher.os.environ, {'XDG_DATA_HOME': self.folder.name}):
+                self.assertEqual(launcher.AppPaths().root, Path(self.folder.name).resolve() / 'homeboard')
+            with patch.object(launcher.sys, 'platform', 'linux'), patch.dict(launcher.os.environ, {'XDG_DATA_HOME': 'relative-ignored'}):
+                self.assertEqual(launcher.AppPaths().root, Path(self.folder.name).resolve() / '.local' / 'share' / 'homeboard')
+
+    def test_unix_stop_request_only_matches_its_own_profile_and_clears_stale_requests(self):
+        request = self.paths.root / '.stop-request.json'
+        request.write_text(json.dumps({'instance_id': self.config['instance_id']}))
+        control = launcher.FileStopSignal(self.paths, self.config)
+        self.assertFalse(request.exists())
+        stop = threading.Event()
+        worker = threading.Thread(target=control.watch, args=(stop,))
+        worker.start()
+        try:
+            request.write_text(json.dumps({'instance_id': 'another-profile'}))
+            self.assertFalse(stop.wait(0.35))
+            request.write_text(json.dumps({'instance_id': self.config['instance_id']}))
+            self.assertTrue(stop.wait(2))
+        finally:
+            stop.set()
+            worker.join(timeout=2)
+            control.close()
+        self.assertFalse(request.exists())
+
+    def test_unix_stop_verifies_ownership_before_requesting_shutdown(self):
+        with patch.object(launcher, 'IS_WINDOWS', False), \
+                patch.object(launcher, 'InstanceLock', side_effect=[FakeLock(), FakeLock(False), FakeLock()]), \
+                patch.object(launcher, 'is_healthy', return_value=True), \
+                patch.object(launcher.subprocess, 'Popen') as spawn:
+            self.assertEqual(launcher.stop_worker(self.paths), 0)
+        value = json.loads((self.paths.root / '.stop-request.json').read_text())
+        self.assertEqual(value, {'instance_id': self.config['instance_id']})
+        spawn.assert_not_called()
+        (self.paths.root / '.stop-request.json').unlink()
+        with patch.object(launcher, 'IS_WINDOWS', False), \
+                patch.object(launcher, 'InstanceLock', side_effect=[FakeLock(), FakeLock(False)]), \
+                patch.object(launcher, 'is_healthy', return_value=False):
+            with self.assertRaisesRegex(launcher.LaunchError, 'not responding'):
+                launcher.stop_worker(self.paths)
+        self.assertFalse((self.paths.root / '.stop-request.json').exists())
 
     def test_health_requires_our_product_instance_and_success(self):
         connection = MagicMock()
