@@ -16,6 +16,7 @@ ALLOWLIST = (
     '.github/workflows/windows.yml',
     '.github/workflows/release.yml', 'requirements-unix-build.txt',
     'installer/install-linux.sh', 'scripts/build_unix.py', 'scripts/smoke_desktop.py',
+    'scripts/get_nsis.py',
     'tests/test_desktop_install.py', 'release/NOTES.md',
     'installer/Homeboard.nsi', 'installer/make_icon.py',
     'scripts/build_windows.py', 'scripts/package_release.py', 'scripts/smoke_windows.py',

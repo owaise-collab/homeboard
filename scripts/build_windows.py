@@ -90,7 +90,7 @@ def main():
             parser.error('Node is required for frontend build checks, not for the buyer application.')
         run([node, '--test', *sorted((ROOT / 'tests').glob('*.cjs'))])
     source_names = ('index.html', 'server.py', 'launcher.py', 'desktop_install.py', 'VERSION', 'LICENSE',
-                    'installer/Homeboard.nsi', 'installer/make_icon.py', 'scripts/build_windows.py',
+                    'installer/Homeboard.nsi', 'installer/make_icon.py', 'scripts/build_windows.py', 'scripts/get_nsis.py',
                     'requirements-build.txt', 'release/Quickstart.txt', 'THIRD_PARTY_NOTICES.md')
     source_hashes = {name: sha(ROOT / name) for name in source_names}
     BUILD.mkdir(parents=True, exist_ok=True)
