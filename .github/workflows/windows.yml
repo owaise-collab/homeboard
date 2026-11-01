@@ -1,0 +1,56 @@
+name: Check and build Homeboard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Windows time zone database
+        run: python -m pip install tzdata==2026.6
+      - name: Backend and Windows launcher checks
+        run: python -m unittest discover -s tests
+      - name: Calendar, interface and onboarding checks
+        shell: pwsh
+        run: |
+          $suites = Get-ChildItem -LiteralPath tests -Filter '*.cjs' | ForEach-Object FullName
+          node --test @suites
+      - name: Install build tools
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          python -m pip install --target .build-tools/python -r requirements-build.txt
+          Invoke-WebRequest 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip' -OutFile .build-tools/nsis.zip
+          $digest = (Get-FileHash -LiteralPath .build-tools/nsis.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($digest -ne 'ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8') { throw 'NSIS archive checksum mismatch' }
+          Expand-Archive -LiteralPath .build-tools/nsis.zip -DestinationPath .build-tools
+      - name: Build and smoke-test unsigned candidate
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          python scripts/build_windows.py --skip-tests
+          python scripts/smoke_windows.py
+          python scripts/package_release.py
+      - name: Keep candidate artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homeboard-windows-candidate
+          path: release/artifacts/*
+          if-no-files-found: error
+          retention-days: 14
