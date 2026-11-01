@@ -15,6 +15,7 @@ ALLOWLIST = (
     '.dockerignore', '.gitignore', 'requirements-build.txt',
     '.github/workflows/windows.yml',
     '.github/workflows/release.yml', 'requirements-unix-build.txt',
+    '.github/workflows/publish.yml',
     'installer/install-linux.sh', 'scripts/build_unix.py', 'scripts/smoke_desktop.py',
     'scripts/get_nsis.py',
     'tests/test_desktop_install.py', 'release/NOTES.md',
