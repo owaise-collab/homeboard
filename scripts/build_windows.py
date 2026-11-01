@@ -89,7 +89,7 @@ def main():
         if not Path(node).is_file():
             parser.error('Node is required for frontend build checks, not for the buyer application.')
         run([node, '--test', *sorted((ROOT / 'tests').glob('*.cjs'))])
-    source_names = ('index.html', 'server.py', 'launcher.py', 'VERSION',
+    source_names = ('index.html', 'server.py', 'launcher.py', 'desktop_install.py', 'VERSION', 'LICENSE',
                     'installer/Homeboard.nsi', 'installer/make_icon.py', 'scripts/build_windows.py',
                     'requirements-build.txt', 'release/Quickstart.txt', 'THIRD_PARTY_NOTICES.md')
     source_hashes = {name: sha(ROOT / name) for name in source_names}
@@ -114,12 +114,12 @@ def main():
         '--noconfirm', '--onedir', '--windowed', '--noupx', '--name', 'Homeboard',
         '--distpath', str(BUILD / 'bundle'), '--workpath', str(BUILD / 'work'),
         '--specpath', str(BUILD / 'spec'), '--paths', str(ROOT),
-        '--hidden-import', 'server', '--collect-data', 'tzdata',
+        '--hidden-import', 'server', '--hidden-import', 'desktop_install', '--collect-data', 'tzdata',
         '--add-data', str(ROOT / 'index.html') + os.pathsep + '.',
         '--add-data', str(ROOT / 'VERSION') + os.pathsep + '.',
         '--icon', str(icon), '--version-file', str(version_file), str(ROOT / 'launcher.py')])
     bundle = BUILD / 'bundle' / 'Homeboard'
-    for src, dest in [('release/Quickstart.txt', 'Quickstart.txt'),
+    for src, dest in [('release/Quickstart.txt', 'Quickstart.txt'), ('LICENSE', 'LICENSE'),
                       ('THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_NOTICES.md')]:
         shutil.copy2(ROOT / src, bundle / dest)
     (bundle / 'RELEASE_STATUS.txt').write_text('Homeboard ' + version + '\nRelease candidate; not cleared for public sale.\n'

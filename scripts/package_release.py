@@ -10,10 +10,13 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWLIST = (
-    'VERSION', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md', 'README.md',
-    'index.html', 'server.py', 'launcher.py', 'Dockerfile', 'compose.yaml',
+    'VERSION', 'LICENSE', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md', 'README.md',
+    'index.html', 'server.py', 'launcher.py', 'desktop_install.py', 'Dockerfile', 'compose.yaml',
     '.dockerignore', '.gitignore', 'requirements-build.txt',
     '.github/workflows/windows.yml',
+    '.github/workflows/release.yml', 'requirements-unix-build.txt',
+    'installer/install-linux.sh', 'scripts/build_unix.py', 'scripts/smoke_desktop.py',
+    'tests/test_desktop_install.py', 'release/NOTES.md',
     'installer/Homeboard.nsi', 'installer/make_icon.py',
     'scripts/build_windows.py', 'scripts/package_release.py', 'scripts/smoke_windows.py',
     'release/README.md', 'release/Quickstart.txt', 'release/BUILDING.md',
