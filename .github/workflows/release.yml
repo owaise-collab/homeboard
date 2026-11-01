@@ -1,0 +1,107 @@
+name: Build all desktop downloads
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            target: windows-x64
+            architecture: x64
+            kind: windows
+          - runner: ubuntu-22.04
+            target: linux-x64
+            architecture: x64
+            kind: unix
+          - runner: ubuntu-22.04-arm
+            target: linux-arm64
+            architecture: arm64
+            kind: unix
+          - runner: macos-15-intel
+            target: macos-x64
+            architecture: x64
+            kind: unix
+          - runner: macos-15
+            target: macos-arm64
+            architecture: arm64
+            kind: unix
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: ${{ matrix.architecture }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Unix build dependencies
+        if: matrix.kind == 'unix'
+        run: python -m pip install -r requirements-unix-build.txt
+      - name: Install Windows build dependencies
+        if: matrix.kind == 'windows'
+        run: python -m pip install --target .build-tools/python -r requirements-build.txt
+      - name: Install time zone data for checks
+        run: python -m pip install tzdata==2026.6
+      - name: Test native backend and desktop lifecycle
+        run: python -m unittest discover -s tests
+      - name: Test interface and onboarding
+        shell: bash
+        run: node --test tests/*.cjs
+      - name: Get verified NSIS compiler
+        if: matrix.kind == 'windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip' -OutFile .build-tools/nsis.zip
+          $digest = (Get-FileHash -LiteralPath .build-tools/nsis.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($digest -ne 'ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8') { throw 'NSIS archive checksum mismatch' }
+          Expand-Archive -LiteralPath .build-tools/nsis.zip -DestinationPath .build-tools
+      - name: Build Windows and smoke-test its actual executable
+        if: matrix.kind == 'windows'
+        run: |
+          python scripts/build_windows.py --skip-tests
+          python scripts/smoke_desktop.py --bundle .build/windows/bundle/Homeboard
+      - name: Build and smoke-test native Unix executable
+        if: matrix.kind == 'unix'
+        run: python scripts/build_unix.py
+      - name: Package reviewed source
+        if: matrix.target == 'linux-x64'
+        run: python scripts/package_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Homeboard-${{ matrix.target }}
+          path: release/artifacts/*
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: native
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Homeboard-*
+          merge-multiple: true
+          path: release/artifacts
+      - name: Publish tested free preview downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version=$(cat VERSION)
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release/artifacts/* --clobber
+          else
+            gh release create "$tag" release/artifacts/* --target "$GITHUB_SHA" --prerelease --title "Homeboard $version — free desktop preview" --notes-file release/NOTES.md
+          fi
