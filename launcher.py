@@ -1,4 +1,4 @@
-"""Homeboard's Windows desktop entry point (standard library only).
+"""Homeboard's desktop entry point for Windows, macOS and Linux.
 
 The installer freezes this file as Homeboard.exe. A normal launch opens the
 browser after the per-user server is healthy; --background is for login startup.
@@ -10,6 +10,7 @@ import argparse
 import ctypes
 from ctypes import wintypes
 import hashlib
+import html
 import http.client
 import ipaddress
 import json
@@ -17,6 +18,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
+import signal as process_signal
 import socket
 import subprocess
 import sys
@@ -45,12 +47,18 @@ class LaunchError(Exception):
 class AppPaths:
     def __init__(self, root=None):
         if root is None:
-            local = os.environ.get("LOCALAPPDATA")
-            if not local:
-                if IS_WINDOWS:
+            if IS_WINDOWS:
+                local = os.environ.get("LOCALAPPDATA")
+                if not local:
                     raise LaunchError("Windows could not find your local application folder (LOCALAPPDATA).")
-                local = str(Path.home() / ".local" / "share")
-            root = Path(local) / "Homeboard"
+                root = Path(local) / "Homeboard"
+            elif sys.platform == "darwin":
+                root = Path.home() / "Library" / "Application Support" / "Homeboard"
+            else:
+                local = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
+                if not local.is_absolute():
+                    local = Path.home() / ".local" / "share"
+                root = local / "homeboard"
         self.root = Path(root).expanduser().resolve()
         self.data = self.root / "data"
         self.logs = self.root / "logs"
@@ -61,7 +69,7 @@ class AppPaths:
 
     def ensure(self):
         for path in (self.root, self.data, self.logs):
-            path.mkdir(parents=True, exist_ok=True)
+            path.mkdir(parents=True, exist_ok=True, mode=0o700)
 
 
 def windows_kernel():
@@ -159,6 +167,30 @@ class StopSignal:
             self.handle = None
 
 
+class FileStopSignal:
+    """Cooperative Unix shutdown scoped to a private, locked storage profile."""
+    def __init__(self, paths, config):
+        self.path = paths.root / '.stop-request.json'
+        self.instance_id = config['instance_id']
+        # A completed stop must not affect the next launch. The startup lock
+        # prevents a new stop request until this worker has reported healthy.
+        self.path.unlink(missing_ok=True)
+
+    def watch(self, stop):
+        while not stop.wait(0.25):
+            try:
+                with self.path.open('rb') as request:
+                    raw = request.read(4097)
+                value = json.loads(raw) if len(raw) <= 4096 else {}
+                if isinstance(value, dict) and value.get('instance_id') == self.instance_id:
+                    stop.set()
+            except (OSError, ValueError):
+                pass
+
+    def close(self):
+        self.path.unlink(missing_ok=True)
+
+
 def configure_logging(paths, worker=False):
     handler = RotatingFileHandler(paths.logs / ("server.log" if worker else "launcher.log"),
                                   maxBytes=2 * 1024 * 1024, backupCount=3, encoding="utf-8")
@@ -235,10 +267,21 @@ def private_addresses():
     try:
         for entry in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET, socket.SOCK_STREAM):
             address = ipaddress.ip_address(entry[4][0])
-            if address.is_private and not (address.is_loopback or address.is_link_local or address.is_unspecified):
+            if any(address in ipaddress.ip_network(network) for network in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')):
                 addresses.add(str(address))
     except (OSError, ValueError):
         LOG.warning("Could not discover private network addresses; local browser access remains available.")
+    if not addresses:
+        # UDP connect asks the OS which local address its default route uses;
+        # no data is sent and no internet response or DNS lookup is required.
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as route:
+                route.connect(('192.0.2.1', 9))
+                address = ipaddress.ip_address(route.getsockname()[0])
+                if any(address in ipaddress.ip_network(network) for network in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')):
+                    addresses.add(str(address))
+        except (OSError, ValueError):
+            pass
     return sorted(addresses)
 
 
@@ -323,7 +366,11 @@ def serve(paths):
         # A machine-wide deployment environment must not override desktop setup.
         os.environ.pop("SETUP_KEY", None)
         stop = threading.Event()
-        signal = StopSignal(paths) if IS_WINDOWS else None
+        signal = StopSignal(paths) if IS_WINDOWS else FileStopSignal(paths, config)
+        previous_handlers = {}
+        if not IS_WINDOWS and threading.current_thread() is threading.main_thread():
+            for number in (process_signal.SIGTERM, process_signal.SIGINT):
+                previous_handlers[number] = process_signal.signal(number, lambda *_: stop.set())
         watcher = None
         try:
             if signal:
@@ -340,18 +387,35 @@ def serve(paths):
                 watcher.join()
             if signal:
                 signal.close()
+            for number, handler in previous_handlers.items():
+                process_signal.signal(number, handler)
         return 0
 
 
 def stop_worker(paths):
-    if not IS_WINDOWS:
-        raise LaunchError("The installer shutdown command is available on Windows only.")
     with InstanceLock(paths, "start", STOP_TIMEOUT + 5) as startup:
         if not startup.acquired:
             raise LaunchError("Homeboard is still starting. Wait a moment and try the update again.")
         with InstanceLock(paths, "worker") as worker:
             if worker.acquired:
                 return 0
+        if not IS_WINDOWS:
+            config = read_config(paths)
+            if not is_healthy(config['port'], config['instance_id']):
+                raise LaunchError('Homeboard is not responding. Check the server log before updating.')
+            temporary = paths.root / ('.stop-' + uuid.uuid4().hex + '.tmp')
+            try:
+                with temporary.open('x', encoding='utf-8') as request:
+                    os.chmod(temporary, 0o600)
+                    json.dump({'instance_id': config['instance_id']}, request)
+                os.replace(temporary, paths.root / '.stop-request.json')
+            finally:
+                temporary.unlink(missing_ok=True)
+            with InstanceLock(paths, 'worker', STOP_TIMEOUT) as stopped:
+                if not stopped.acquired:
+                    raise LaunchError('Homeboard has not finished saving. Wait a moment before updating.')
+            LOG.info('Homeboard stopped gracefully.')
+            return 0
         kernel = windows_kernel()
         handle = kernel.OpenEventW(EVENT_MODIFY_STATE, False, paths.control_name + "-stop")
         if not handle:
@@ -379,14 +443,27 @@ def show_error(message, paths=None):
         user32.MessageBoxW(None, message, "Homeboard could not open", 0x10)
     else:
         print(message, file=sys.stderr)
+        if paths:
+            try:
+                page = paths.logs / 'could-not-open.html'
+                page.write_text('<!doctype html><meta charset="utf-8"><title>Homeboard</title>'
+                    '<body style="font:18px system-ui;max-width:650px;margin:10vh auto;padding:24px">'
+                    '<h1>Homeboard could not open.</h1><pre style="white-space:pre-wrap;font:inherit">'
+                    + html.escape(message) + '</pre></body>', encoding='utf-8')
+                webbrowser.open(page.as_uri(), new=2)
+            except OSError:
+                pass
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Open your Homeboard family dashboard.")
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--background", action="store_true", help="Start at Windows login without opening a browser.")
+    mode.add_argument("--background", action="store_true", help="Start without opening a browser.")
     mode.add_argument("--serve", action="store_true", help=argparse.SUPPRESS)
     mode.add_argument("--stop", action="store_true", help="Save and stop this profile's server for an update.")
+    mode.add_argument('--install', action='store_true', help='Install the Linux bundle for this user.')
+    mode.add_argument('--enable-startup', action='store_true', help='Start at login on macOS or Linux.')
+    mode.add_argument('--disable-startup', action='store_true', help='Remove macOS or Linux login startup.')
     parser.add_argument("--app-dir", type=Path, help="Override the storage root containing data and logs.")
     arguments = parser.parse_args(argv)
     paths = None
@@ -394,6 +471,18 @@ def main(argv=None):
         paths = AppPaths(arguments.app_dir)
         paths.ensure()
         configure_logging(paths, arguments.serve)
+        if arguments.install:
+            if not sys.platform.startswith('linux') or not getattr(sys, 'frozen', False):
+                raise LaunchError('Use the Linux download and run its install.sh script.')
+            import desktop_install
+            installed = desktop_install.install_linux(sys.executable, paths, stop_worker)
+            subprocess.Popen([str(installed)], start_new_session=True, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return 0
+        if arguments.enable_startup or arguments.disable_startup:
+            import desktop_install
+            desktop_install.configure_startup(sys.executable, arguments.enable_startup)
+            return 0
         if arguments.serve:
             return serve(paths)
         if arguments.stop:

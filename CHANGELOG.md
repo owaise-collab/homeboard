@@ -1,5 +1,13 @@
 # Homeboard changes
 
+## 0.3.0-rc.1 — free desktop preview
+
+- Public, free MIT-licensed application source and downloads.
+- macOS Intel/Apple Silicon and Linux x64/arm64 build targets alongside Windows x64.
+- Per-user Linux installation, optional macOS/Linux login startup, native profile folders and cooperative shutdown.
+- Native frozen-app first-use, recovery, backup and restart checks before downloads publish together.
+- Cross-platform installation instructions and license copies in runtime packages.
+
 ## 0.2.0-rc.1 — release candidate
 
 - Guided first-time household setup, neutral defaults and owner access recovery.

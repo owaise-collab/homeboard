@@ -9,9 +9,9 @@
 Your family’s plans, groceries, chores and dinner ideas.<br>
 One shared home, on the kitchen screen and in everyone’s pocket.
 
-**Self-hosted** &nbsp; · &nbsp; **Windows app** &nbsp; · &nbsp; **Android + iPhone browsers**
+**Free & open source · MIT** &nbsp; · &nbsp; **Windows · macOS · Linux**<br>Self-hosted · Android + iPhone browsers
 
-[Get the Windows preview](https://github.com/owaise-collab/homeboard/releases/tag/v0.2.0-rc.1) · [Set up your home](#your-first-five-minutes) · [Everyday guide](docs/EVERYDAY.md) · [Screenshots](#a-place-for-every-part-of-the-day)
+[Download Homeboard free](https://github.com/owaise-collab/homeboard/releases/tag/v0.3.0-rc.1) · [Set up your home](#your-first-five-minutes) · [Everyday guide](docs/EVERYDAY.md) · [Screenshots](#a-place-for-every-part-of-the-day)
 
 ![Homeboard kitchen display with a large clock, today's plans, shopping and family tasks](docs/screenshots/display.jpg)
 
@@ -68,9 +68,25 @@ Assign a task to a family member and give it a due date. Daily and weekly chores
 
 </details>
 
+## Download it for your computer
+
+Homeboard is free under the [MIT license](LICENSE). No payment, vendor account or activation is required. Download a native preview from the [releases page](https://github.com/owaise-collab/homeboard/releases).
+
+| Host computer | Package | Install |
+| --- | --- | --- |
+| Windows 10/11 x64 | Setup EXE | Run Setup, then open Homeboard. |
+| macOS 15+ Apple Silicon | macos-arm64 DMG | Drag Homeboard into Applications, then open it. |
+| macOS 15+ Intel | macos-x64 DMG | Drag Homeboard into Applications, then open it. |
+| Linux x64 | linux-x64 tar.gz | Extract, then run `sh install.sh`. |
+| Linux arm64 | linux-arm64 tar.gz | Extract, then run `sh install.sh`. |
+
+Linux targets Ubuntu 22.04 or compatible glibc 2.35+ desktops. Native packages are built on each OS and appear together after their checks pass. For other systems, use [Python or Docker](release/README.md#run-from-source-or-docker). Phones and TVs use a modern browser rather than installing the server.
+
+These are unsigned previews. macOS packages are not Apple-notarized, and some computers may block them under their security policies. See [installation details and alternatives](release/README.md).
+
 ## Your first five minutes
 
-1. **Install.** Open [the Windows preview release](https://github.com/owaise-collab/homeboard/releases/tag/v0.2.0-rc.1) and download `Homeboard-Setup-0.2.0-rc.1-windows-x64.exe`. Run Setup and choose your shortcut/startup options.
+1. **Install.** Choose your computer’s package from the releases page and follow the installation step above. Open Homeboard on that computer.
 2. **Make it yours.** Open Homeboard on that PC. The welcome flow asks for a household name, time zone, owner account, family profiles and starting style. Save the recovery kit when it appears.
 3. **Add something real.** A school run, tomorrow’s appointment and a few groceries are a good start. Nothing comes prefilled with someone else’s family data.
 4. **Bring your phones.** Open **Help → Connect your devices**. On the same home Wi-Fi, enter the address shown there in your Android or iPhone browser. Create separate adult sign-ins under **Settings → Household access**.
@@ -80,11 +96,11 @@ Assign a task to a family member and give it a due date. Daily and weekly chores
 <img src="docs/screenshots/setup.jpg" width="720" alt="Homeboard's first-run welcome screen with a five-step setup flow">
 </div>
 
-**No Python, Docker or terminal needed on the buyer’s PC.** The Windows package includes its runtime and creates its data folders automatically. The optional startup shortcut runs after your Windows account signs in.
+**No Python or Docker needed for native desktop packages.** Each package includes its runtime and creates its data folders automatically. Windows Setup offers optional login startup; Linux asks during installation; macOS has an optional login-startup command.
 
 The hosting PC needs to stay **on, signed in and awake**. Your other devices need to be able to reach it on the home network. If Windows asks about network access, use your private home network. See the [connection checklist](release/OPERATIONS.md) if a device cannot connect.
 
-> **Current build: 0.2.0-rc.1, Windows x64 preview.** The installer is unsigned and intended for controlled household testing. See [release status](#release-status) before distributing it or taking payments.
+> **Current build: 0.3.0-rc.1, free desktop preview.** Native builds are tested on their target OS. Installers are unsigned; clean-machine, security and device checks remain documented in [release status](#release-status).
 
 ## Built for your own home
 
@@ -93,7 +109,7 @@ The hosting PC needs to stay **on, signed in and awake**. Your other devices nee
 | Keep everyone looking at the same plan | A shared SQLite database, sign-in accounts and live updates between open devices. |
 | Use a spare kitchen screen | A dedicated display route, large clock and server-enforced read-only Display accounts. |
 | Keep ordinary plans out of the cloud | Local storage and core use over your home network without internet access. |
-| Get started without a home-lab project | A Windows installer with a bundled runtime and guided first use. |
+| Get started without a home-lab project | Native desktop packages with a bundled runtime and guided first use. |
 | Keep your household when updating | Data stored separately from application files, automatic database backups and a manual backup action. |
 | Recover a forgotten owner password | A saved, single-use recovery code that rotates after use. |
 
@@ -101,7 +117,7 @@ Family **profiles** give calendar entries and chores a name and color. **Sign-in
 
 ## A few useful answers
 
-**Does everyone need to install an app?** Only the hosting Windows PC. Phones and the kitchen screen use their browsers.
+**Does everyone need to install an app?** Only the hosting computer. Phones and the kitchen screen use their browsers.
 
 **Can I use a TV’s built-in browser?** Yes, when its browser engine supports the app. TV compatibility varies; if yours is too old, a small HDMI browser player is an alternative. Test your actual TV during the preview.
 
@@ -111,26 +127,28 @@ Family **profiles** give calendar entries and chores a name and color. **Sign-in
 
 **Can I use it away from home or connect Google/Apple Calendar?** Remote access and external calendar synchronization are not included in this preview. Do not forward the app’s port directly to the internet. See [networking and HTTPS](release/OPERATIONS.md).
 
-**Where does my data live?** `%LOCALAPPDATA%\Homeboard`. Application files live separately in `%LOCALAPPDATA%\Programs\Homeboard`. Ordinary uninstall retains your data; make a backup before updates.
+**Where does my data live?** In a separate per-user folder: `%LOCALAPPDATA%\Homeboard` on Windows, `~/Library/Application Support/Homeboard` on macOS, or `$XDG_DATA_HOME/homeboard` (normally `~/.local/share/homeboard`) on Linux. See [data and uninstall](release/README.md#your-data).
 
 ## Go a little deeper
 
 | For your family | For building and maintaining Homeboard |
 | --- | --- |
 | [Everyday walkthrough](docs/EVERYDAY.md) | [Windows build instructions](release/BUILDING.md) |
-| [Buyer installation guide](release/README.md) | [Backup, restore and update operations](release/OPERATIONS.md) |
+| [Installation guide](release/README.md) | [Backup, restore and update operations](release/OPERATIONS.md) |
 | [Printable quick start](release/Quickstart.txt) | [Changes in this version](CHANGELOG.md) |
 | [Connection and recovery help](release/OPERATIONS.md) | [Third-party notices](THIRD_PARTY_NOTICES.md) |
 
-The interface is one self-contained HTML file with no CDN dependency. The server uses Python and SQLite. The Windows package bundles the runtime using PyInstaller and a per-user NSIS installer. Docker Compose is also provided for experienced self-hosters; its safe starting configuration binds to loopback.
+The interface is one self-contained HTML file with no CDN dependency. The server uses Python and SQLite. Desktop packages bundle the runtime using PyInstaller. Windows uses NSIS Setup, macOS uses a DMG application, and Linux has a per-user installer. Docker Compose is also provided for experienced self-hosters; its safe starting configuration binds to loopback.
 
-The [Windows workflow](.github/workflows/windows.yml) runs checks on pushes and pull requests. Maintainers can run **Actions → Check and build Homeboard → Run workflow** to produce candidate installer artifacts. [Source packaging](scripts/package_release.py) uses an explicit allowlist and SHA-256 manifest to exclude household data and personal deployment files.
+The [Windows workflow](.github/workflows/windows.yml) runs checks on pushes and pull requests. Maintainers can run **Actions → Build all desktop downloads → Run workflow** to build, smoke-test and publish all five native packages together. Public standard GitHub-hosted runners build them without a paid runner service. [Source packaging](scripts/package_release.py) uses an explicit allowlist and SHA-256 manifest to exclude household data and personal deployment files.
 
 ## Release status
 
-Homeboard is a working release candidate, not a certified public-sale release. The packaged app has passed 54 Python tests, 51 JavaScript tests, and frozen-app checks for first-use setup, recovery-code creation, backup, worker reuse and restart. These checks do not replace testing Setup, upgrades and uninstall on a clean Windows machine.
+Homeboard is free and open source under [MIT](LICENSE), including commercial reuse with the license notice retained. There is no paid activation or mandatory cloud service.
 
-Before a paid general release, complete publisher signing, production serving and independent security review, trusted HTTPS/device testing, runtime license review, seller terms and the [seller checklist](release/SELLER-CHECKLIST.md). The working name and visual identity also need clearance. No commercial license or legal ownership assignment is supplied in this repository.
+This is a community preview, not a certified production appliance. Automated checks cover the server, permissions, recurrence, onboarding and desktop lifecycle. Native release jobs test their actual frozen executable for first use, recovery-code creation, backup, duplicate launch and restart.
+
+Trusted publisher signing/notarization, full clean-machine installation/upgrade/uninstall tests, independent security review and broader TV/distribution testing remain in the [release checklist](release/SELLER-CHECKLIST.md). Do not expose its app port directly to the internet. Dependency licenses remain separate in [third-party notices](THIRD_PARTY_NOTICES.md).
 
 <div align="center">
 <br>

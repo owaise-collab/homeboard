@@ -27,7 +27,7 @@ from urllib.parse import urlsplit
 
 LOG = logging.getLogger("family")
 BASE_DIR = Path(__file__).resolve().parent
-PRODUCT_VERSION = "0.2.0-rc.1"
+PRODUCT_VERSION = "0.3.0-rc.1"
 MAX_BODY = 2 * 1024 * 1024
 SESSION_SECONDS = 30 * 24 * 60 * 60
 SCRYPT_N = 2 ** 17

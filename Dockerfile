@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DATA_DIR=/data
 
 WORKDIR /app
-COPY server.py index.html VERSION /app/
+COPY server.py index.html VERSION LICENSE THIRD_PARTY_NOTICES.md /app/
 RUN mkdir -p /data && chown 10001:10001 /data
 USER 10001:10001
 
