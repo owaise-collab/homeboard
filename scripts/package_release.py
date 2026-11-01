@@ -20,6 +20,11 @@ ALLOWLIST = (
     'release/OPERATIONS.md', 'release/SELLER-CHECKLIST.md',
     'tests/test_server.py', 'tests/test_launcher.py', 'tests/test_release.py',
     'tests/test_dates.cjs', 'tests/test_frontend.cjs', 'tests/test_startup.cjs', 'tests/test_onboarding.cjs',
+    'docs/EVERYDAY.md', 'docs/assets/homeboard.svg',
+    'docs/screenshots/display.jpg', 'docs/screenshots/today.jpg',
+    'docs/screenshots/calendar.jpg', 'docs/screenshots/shopping.jpg',
+    'docs/screenshots/tasks.jpg', 'docs/screenshots/phone.jpg',
+    'docs/screenshots/setup.jpg', 'docs/screenshots/night.jpg',
 )
 
 
