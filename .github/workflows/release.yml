@@ -93,7 +93,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          version=$(cat VERSION)
+          version=$(tr -d '\r\n' < VERSION)
           tag="v$version"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release/artifacts/* --clobber
