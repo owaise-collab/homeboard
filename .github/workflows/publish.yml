@@ -1,0 +1,103 @@
+name: Publish already-tested desktop packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Native build run ID with five successful platform jobs
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN: ${{ inputs.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify all native platform jobs succeeded
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          run = os.environ['SOURCE_RUN']
+          if not run.isdigit():
+              raise SystemExit('A numeric native build run ID is required.')
+          base = 'repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + run
+          info = json.loads(subprocess.check_output(['gh', 'api', base]))
+          assert info['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']
+          assert info['event'] == 'workflow_dispatch' and info['status'] == 'completed'
+          jobs = json.loads(subprocess.check_output(['gh', 'api', base + '/jobs?per_page=100']))['jobs']
+          for target in ('windows-x64', 'linux-x64', 'linux-arm64', 'macos-x64', 'macos-arm64'):
+              matches = [j for j in jobs if j['name'].startswith('native (') and target in j['name']]
+              assert len(matches) == 1 and matches[0]['conclusion'] == 'success', target
+          version = Path('VERSION').read_text().strip()
+          assert re.fullmatch(r'\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?', version)
+          print('Verified five successful native platform builds.')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          pattern: Homeboard-*
+          merge-multiple: true
+          path: release/artifacts
+      - name: Verify compiled inputs still match this source
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path('.').resolve()
+          version = (root / 'VERSION').read_text().strip()
+          manifests = list((root / 'release/artifacts').glob('*.manifest.json'))
+          targets = set()
+          for path in manifests:
+              manifest = json.loads(path.read_text())
+              assert manifest['version'] == version
+              targets.add(manifest['target'])
+              for name, expected in manifest['sources'].items():
+                  source = (root / name).resolve()
+                  assert source.is_relative_to(root) and source.is_file()
+                  content = source.read_bytes()
+                  lf = content.replace(b'\r\n', b'\n')
+                  variants = (content, lf, lf.replace(b'\n', b'\r\n'))
+                  assert expected in {hashlib.sha256(v).hexdigest() for v in variants}, name
+          assert targets == {'windows-x64', 'linux-x64', 'linux-arm64', 'macos-x64', 'macos-arm64'}
+          print('Every compiled source input matches, allowing platform line endings.')
+          PY
+      - name: Include current source and publication configuration
+        run: python scripts/package_release.py
+      - name: Verify every downloadable file checksum
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root = Path('release/artifacts').resolve()
+          for checksums in root.glob('*.sha256'):
+              for line in checksums.read_text().splitlines():
+                  digest, name = line.split(None, 1)
+                  path = (root / name.strip().lstrip('*')).resolve()
+                  assert path.is_relative_to(root) and path.is_file()
+                  assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, path.name
+          print('All download checksums match.')
+          PY
+      - name: Publish verified preview downloads
+        shell: bash
+        run: |
+          version=$(python -c "from pathlib import Path; print(Path('VERSION').read_text().strip())")
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release/artifacts/* --clobber
+            gh release edit "$tag" --draft=false --prerelease --title "Homeboard $version — free desktop preview" --notes-file release/NOTES.md
+          else
+            gh release create "$tag" release/artifacts/* --target "$GITHUB_SHA" --prerelease --title "Homeboard $version — free desktop preview" --notes-file release/NOTES.md
+          fi
