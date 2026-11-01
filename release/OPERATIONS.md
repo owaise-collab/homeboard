@@ -8,13 +8,13 @@ Allow access only from the intended private household network. Do not forward th
 
 Phone home-screen installation, service workers and browser capabilities may need trusted HTTPS. A local certificate authority requires trust installation on every client, including the TV if it supports it. The Caddy [automatic HTTPS guide](https://caddyserver.com/docs/automatic-https) explains the distinction between locally issued certificates and public certificates. Do not ask customers to bypass certificate warnings.
 
-The current backend uses Python `http.server`. Its [official warning](https://docs.python.org/3/library/http.server.html) is a public-sale gate: replace the serving layer or complete a documented production security design/review before representing the product as production hardened. A Windows installer does not itself solve that issue.
+The current backend uses Python `http.server`. Its [official warning](https://docs.python.org/3/library/http.server.html) requires production-serving review: replace the serving layer or complete a documented production security design/review before representing the product as production hardened. A Windows installer does not itself solve that issue.
 
 ## Backups
 
 The application makes consistent local SQLite snapshots. Keep a second copy on another physical device; a backup on the failed PC cannot recover a disk loss. Include the whole customer data directory in your normal protected backup process. It contains account/session information and must be treated as private.
 
-An owner can export a household JSON backup for records. It does not replace the full SQLite snapshot for accounts. Save recovery codes separately from the hosting PC. Seller support must never ask for customer passwords or recovery codes.
+An owner can export a household JSON backup for records. It does not replace the full SQLite snapshot for accounts. Save recovery codes separately from the hosting PC. Support must never ask for customer passwords or recovery codes.
 
 ## Restore a SQLite snapshot
 
@@ -36,7 +36,7 @@ For replacement-PC recovery, install the same supported Homeboard version, stop 
 4. Open the dashboard, verify accounts, recurrence, shopping and another device's updates.
 5. If rollback is necessary, stop Homeboard, preserve the current data separately, and test the old version with the pre-update snapshot in an isolated copy. Do not overwrite the only copy of current data.
 
-Database/schema backward compatibility is not assumed. The seller must test each supported upgrade path and document whether a snapshot restore is required to return to the older version.
+Database/schema backward compatibility is not assumed. Maintainers must test each supported upgrade path and document whether a snapshot restore is required to return to the older version.
 
 ## Uninstall
 
@@ -47,3 +47,9 @@ Uninstall removes the application and its current-user shortcuts/registration. I
 Ask for product version, Windows edition/build, browser/device model and a description of the failed action. Prefer redacted diagnostics. Do not collect full databases, family calendars, passwords, setup keys, recovery codes or entire log folders by default.
 
 No support address, service-level agreement, refund terms or company identity has been invented. The owner must supply and approve those before launch.
+
+## macOS and Linux profiles
+
+The same database and backup layout is used under `~/Library/Application Support/Homeboard` on macOS and `$XDG_DATA_HOME/homeboard` (normally `~/.local/share/homeboard`) on Linux. Stop the appropriate installed executable with `--stop` before replacing/restoring database files. Use `--enable-startup` or `--disable-startup` for optional per-user login startup. There is no always-on system service. The Windows restore procedure above applies to database filenames, but use the correct profile folder for your OS and preserve the entire original profile first.
+
+macOS: replace the stopped application without deleting its separate data directory. Linux: the installer copies verified, versioned bundles, safely stops the owned worker and atomically switches a current link; application-menu and startup paths follow that link. Never use an older binary with newer household data without testing a copied snapshot first.

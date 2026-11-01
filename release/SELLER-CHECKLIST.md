@@ -1,12 +1,12 @@
-# Homeboard public-sale gates
+# Homeboard release checklist
 
-The current deliverable is an unsigned release candidate. Mark a gate complete only with actual evidence for the shipping build.
+Homeboard is public and free under MIT, approved by the owner. The current deliverable is an unsigned community preview. Mark a gate complete only with actual evidence for the shipping build.
 
 ## Product and ownership
 
 - [ ] Confirm the selling format, price, supported countries, refund policy and what installation/support includes.
 - [ ] Confirm the Homeboard name, domain, logo and descriptions can be used; there is no trademark clearance in this repository.
-- [ ] Approve the application license, EULA/terms, privacy notice and legal seller identity. No legal terms or copyright owner has been fabricated.
+- [x] Owner approved public source and free MIT licensing. Dependencies keep their own licenses. Commercial support terms are not supplied.
 - [ ] Resolve the intended scope of the parent repository license and complete the dependency/asset notice audit for the exact shipped runtime.
 
 ## Security and distribution
@@ -15,7 +15,7 @@ The current deliverable is an unsigned release candidate. Mark a gate complete o
 - [ ] Review authentication, setup claiming, recovery codes, session revocation, CSRF, display filtering and authorization with independent security testing.
 - [ ] Sign the application and installer with the real publisher's certificate, timestamp signatures and verify them. Do not invent a publisher or disable SmartScreen/antivirus.
 - [ ] Pin build tools/base images, produce a runtime SBOM, scan dependencies and establish update ownership and a vulnerability-reporting channel.
-- [ ] Test the actual downloadable artifact and its SHA-256 manifest after upload. Protect the private source and signing credentials.
+- [ ] Test the actual downloadable artifact and its SHA-256 manifest after upload. Protect signing credentials; the application source is intentionally public.
 
 ## Buyer experience
 
@@ -34,4 +34,4 @@ The current deliverable is an unsigned release candidate. Mark a gate complete o
 - [ ] Test each promised upgrade path; preserve data by default and retain rollback artifacts.
 - [ ] Provide versioned buyer instructions, known limitations, support contact, recovery instructions and an update policy.
 - [ ] Clearly state the PC must remain powered, awake and signed in for this per-user background edition. If selling an always-on appliance, validate its different startup and power behavior separately.
-- [ ] Obtain seller approval before publishing, charging customers, making a public repository or claiming general availability.
+- [x] Owner explicitly approved making the repository public under MIT. Do not represent preview builds as certified or invent commercial support commitments.

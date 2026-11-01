@@ -2,7 +2,7 @@
 
 Build on 64-bit Windows with 64-bit Python 3.13. Buyers do not need these tools. The compiler/tooling stays in the checkout and is not installed globally.
 
-The private source project is [owaise-collab/homeboard](https://github.com/owaise-collab/homeboard). Its **Check and build Homeboard** workflow checks pushes and pull requests. To build a review candidate, open **Actions → Check and build Homeboard → Run workflow** with repository access. The manual job verifies the pinned NSIS ZIP hash, compiles and smoke-tests an unsigned candidate, then retains the installer/ZIP/manifests as the `Homeboard-windows-candidate` artifact for 14 days. It does not publish a public release or use code-signing credentials.
+The public MIT-licensed source project is [owaise-collab/homeboard](https://github.com/owaise-collab/homeboard). Its **Check and build Homeboard** workflow checks pushes and pull requests. To build a review candidate, open **Actions → Check and build Homeboard → Run workflow** with repository access. The manual job verifies the pinned NSIS ZIP hash, compiles and smoke-tests an unsigned candidate, then retains the installer/ZIP/manifests as the `Homeboard-windows-candidate` artifact for 14 days. It does not publish a public release or use code-signing credentials.
 
 ```text
 python -m pip install --target .build-tools/python -r requirements-build.txt
@@ -37,3 +37,9 @@ Complete the signing inventory for every shipped executable, including uninstall
 - Do not copy the personal NAS deployment definition or private setup/recovery material into a release.
 - Pin exact tool/base-image inputs for the approved shipping build; capture the runtime SBOM and required license texts.
 - Complete the seller checklist. This build is a release candidate, not evidence that the product is cleared for public sale.
+
+## Native macOS and Linux downloads
+
+Build on the target OS/architecture using Python 3.13: `python -m pip install -r requirements-unix-build.txt`, then `python scripts/build_unix.py`. The builder freezes the runtime, preserves symlinks/executable bits, gathers notices and smoke-tests first use, recovery, backup and restart before packaging a DMG or Linux tar.gz. macOS final bundles receive only an ad-hoc integrity signature; trusted Developer ID signing/notarization requires the maintainer's own Apple identity.
+
+**Actions → Build all desktop downloads → Run workflow** builds Windows x64, macOS Intel/Apple Silicon and Linux x64/arm64 on native runners. Only after all jobs pass does its release job publish the free preview and source archive. Standard public GitHub-hosted runners are used; no signing secrets or paid runner service is configured.
