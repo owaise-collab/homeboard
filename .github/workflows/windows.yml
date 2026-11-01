@@ -36,10 +36,7 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --target .build-tools/python -r requirements-build.txt
-          Invoke-WebRequest 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip' -OutFile .build-tools/nsis.zip
-          $digest = (Get-FileHash -LiteralPath .build-tools/nsis.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($digest -ne 'ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8') { throw 'NSIS archive checksum mismatch' }
-          Expand-Archive -LiteralPath .build-tools/nsis.zip -DestinationPath .build-tools
+          python scripts/get_nsis.py
       - name: Build and smoke-test unsigned candidate
         if: github.event_name == 'workflow_dispatch'
         run: |
